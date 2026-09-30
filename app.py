@@ -110,7 +110,7 @@ with col_l:
             <div style="font-size: 42px; font-weight: bold;">{total_asset:,.0f}</div>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 13px; color: #a0aec0; border-top: 1px solid #2d3748; padding-top: 15px;">
-            <span>不包含備用資金</span>
+            <span>包含備用資金</span>
             <span>目前部位價值</span>
         </div>
     </div>
