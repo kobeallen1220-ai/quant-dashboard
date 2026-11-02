@@ -1,0 +1,127 @@
+{
+ "說明": "資金網站唯一資料來源。金額新臺幣、不加千分位；null＝未填、0＝確認為零。monthly 只列有資料的月份，realized＝累積已實現、unrealized＝當月底未實現。",
+ "asOf": "2026-09-30",
+ "capital": {
+  "positionEquity": 9574470,
+  "reserve": 1600000,
+  "investedPrincipal": 8000000,
+  "sungShu": 4000000,
+  "allen": 4000000
+ },
+ "monthly": [
+  {
+   "month": "2021-10",
+   "longShort": {
+    "realized": 169845,
+    "unrealized": 0
+   },
+   "futuresHedge": {
+    "realized": 0,
+    "unrealized": 0
+   },
+   "aiAutoTrade": {
+    "realized": 490831,
+    "unrealized": 0
+   },
+   "bonds": {
+    "realized": 0,
+    "unrealized": 0
+   }
+  },
+  {
+   "month": "2022-07",
+   "longShort": {
+    "realized": -219812,
+    "unrealized": 0
+   },
+   "futuresHedge": {
+    "realized": 127469,
+    "unrealized": 0
+   },
+   "aiAutoTrade": {
+    "realized": -359488,
+    "unrealized": 0
+   },
+   "bonds": {
+    "realized": 80299,
+    "unrealized": 0
+   }
+  },
+  {
+   "month": "2023-02",
+   "longShort": {
+    "realized": -313818,
+    "unrealized": 0
+   },
+   "futuresHedge": {
+    "realized": 334800,
+    "unrealized": 0
+   },
+   "aiAutoTrade": {
+    "realized": -1089156,
+    "unrealized": 0
+   },
+   "bonds": {
+    "realized": 199160,
+    "unrealized": 0
+   }
+  },
+  {
+   "month": "2024-12",
+   "longShort": {
+    "realized": 540000,
+    "unrealized": 0
+   },
+   "futuresHedge": {
+    "realized": 750000,
+    "unrealized": 0
+   },
+   "aiAutoTrade": {
+    "realized": -1378017,
+    "unrealized": 0
+   },
+   "bonds": {
+    "realized": -312672,
+    "unrealized": 0
+   }
+  },
+  {
+   "month": "2026-01",
+   "longShort": {
+    "realized": 895409,
+    "unrealized": 0
+   },
+   "futuresHedge": {
+    "realized": 1200000,
+    "unrealized": 0
+   },
+   "aiAutoTrade": {
+    "realized": -1378017,
+    "unrealized": 0
+   },
+   "bonds": {
+    "realized": -312672,
+    "unrealized": 0
+   }
+  },
+  {
+   "month": "2026-09",
+   "longShort": {
+    "realized": 1154236,
+    "unrealized": -429631
+   },
+   "futuresHedge": {
+    "realized": 1414718,
+    "unrealized": -564853
+   },
+   "aiAutoTrade": {
+    "realized": -1378017,
+    "unrealized": 0
+   },
+   "bonds": {
+    "realized": -312672,
+    "unrealized": 0
+   }
+  }
+ ]
+}

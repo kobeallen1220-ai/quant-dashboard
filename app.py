@@ -1,15 +1,36 @@
+# -*- coding: utf-8 -*-
+"""量化交易總覽(Streamlit 手機版) v1.1(2026-11-03 搬到 Oracle_Agent/97_tools/capital_site_v1_0/streamlit_app)。
+資料不再寫死：直接讀 chatgpt.site 網站的公開 API(publish_capital_v1_0.py 發布的同一份資料)，
+所以之後更新數字只要發布一次，兩個網站都會更新；API 讀不到時改用同資料夾 data_fallback.json。"""
+import json
+import urllib.request
+from pathlib import Path
+
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-# ==========================================
-# 1. 參數設定區
-# ==========================================
-SUNGSHU_CAPITAL = 4000000
-ALLEN_CAPITAL = 4000000
-TOTAL_PRINCIPAL = 8000000
-RESERVE_CAPITAL = 1600000
-AS_OF = "2026/09/30"
+API_URL = "https://allen-sungshu-capital.kobeallen1220.chatgpt.site/api/portfolio"
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Capital-Viewer/1.0"
+ONLINE = ("longShort", "futuresHedge")  # 線上策略；已下線策略的虧損不計入總部位與累積已實現(Allen 2026-11-03)
+
+
+@st.cache_data(ttl=300)
+def fetch_portfolio():
+    try:
+        req = urllib.request.Request(API_URL, headers={"User-Agent": UA})
+        return json.load(urllib.request.urlopen(req, timeout=15))["data"], "網站"
+    except Exception:
+        return json.loads((Path(__file__).parent / "data_fallback.json").read_text(encoding="utf-8")), "備援檔"
+
+
+P, SOURCE = fetch_portfolio()
+CAP = P["capital"]
+SUNGSHU_CAPITAL = CAP["sungShu"] or 0
+ALLEN_CAPITAL = CAP["allen"] or 0
+TOTAL_PRINCIPAL = CAP["investedPrincipal"] or 0
+RESERVE_CAPITAL = CAP["reserve"] or 0
+AS_OF = P["asOf"].replace("-", "/")
 # ==========================================
 
 st.set_page_config(page_title="量化交易總覽", layout="wide", initial_sidebar_state="collapsed")
@@ -30,29 +51,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-@st.cache_data
 def load_data():
-    dates = ['202104-202110', '202111-202207', '202208-202302', '202401-202412', '202504-202601', '202602-202609']
-    df = pd.DataFrame({
-        'Date': dates,
-        'LS_Realized_Cum': [169845, -219812, -313818, 540000, 895409, 1154236],
-        'LS_Unrealized': [0, 0, 0, 0, 0, -429631], 
-        'Future_Realized_Cum': [0, 127469, 334800, 750000, 1200000, 1414718],
-        'Future_Unrealized': [0, 0, 0, 0, 0, -564853],
-        'AI_Realized_Cum': [490831, -359488, -1089156, -1378017, -1378017, -1378017],
-        'AI_Unrealized': [0, 0, 0, 0, 0, 0],
-        'Bond_Realized_Cum': [0, 80299, 199160, -312672, -312672, -312672],
-        'Bond_Unrealized': [0, 0, 0, 0, 0, 0]
-    })
-    return df
+    keys = {"LS": "longShort", "Future": "futuresHedge", "AI": "aiAutoTrade", "Bond": "bonds"}
+    rows = [m for m in P["monthly"] if any(m[k]["realized"] is not None for k in keys.values())]
+    return pd.DataFrame([{"Date": m["month"],
+                          **{f"{p}_Realized_Cum": m[k]["realized"] or 0 for p, k in keys.items()},
+                          **{f"{p}_Unrealized": m[k]["unrealized"] or 0 for p, k in keys.items()}} for m in rows])
 
 df = load_data()
 latest = df.iloc[-1]
 
-# 運算邏輯 (總部位本金不再加回備用資金)
+# 運算邏輯：總部位直接用發布資料的 positionEquity(不含備用資金)；累積已實現只算線上策略
 total_realized = latest['LS_Realized_Cum'] + latest['Future_Realized_Cum']
 total_unrealized = latest['LS_Unrealized'] + latest['Future_Unrealized'] + latest['AI_Unrealized'] + latest['Bond_Unrealized']
-total_asset = TOTAL_PRINCIPAL + total_realized + total_unrealized
+total_asset = CAP["positionEquity"] if CAP["positionEquity"] is not None else TOTAL_PRINCIPAL + total_realized + total_unrealized
 
 # 策略狀態設定
 strats = {
@@ -169,7 +181,11 @@ st.markdown("""
 # 2026-11-03 手機版修正：原本圖例擠在圖上方、8 條線(含整條與實線重疊的虛線)＋「x unified」提示框會蓋滿手機畫面。
 # 改為：X 軸用期末月份(兩行「2021／10月」)，提示顯示完整期間；Y 軸以「萬元」顯示；圖例移到圖下方；
 # 未實現只畫「最後一段」虛線(前一期→本期含未實現)，不再畫整條重疊虛線；關閉縮放與工具列避免手機誤觸。
-x_label = [d.split('-')[1][:4] + '<br>' + d.split('-')[1][4:] + '月' for d in df['Date']]  # 兩行，手機上不重疊
+x_label = [d[:4] + '<br>' + d[5:] + '月' for d in df['Date']]  # 兩行，手機上不重疊
+# 提示顯示該期間(上一筆資料的下個月～本月)
+_prev = [None] + list(df['Date'][:-1])
+df['Date'] = [d.replace('-', '/') if p is None else
+              f"{(pd.Period(p, 'M') + 1).strftime('%Y/%m')}～{d.replace('-', '/')}" for p, d in zip(_prev, df['Date'])]
 fig = go.Figure()
 
 for prefix, info in zip(['LS', 'Future', 'AI', 'Bond'], [strats['LS'], strats['Future'], strats['AI'], strats['Bond']]):
@@ -204,7 +220,7 @@ fig.update_layout(
 )
 st.plotly_chart(fig, width='stretch', config={'displayModeBar': False, 'scrollZoom': False})
 st.markdown("<div style='font-size: 12px; color: #a0aec0;'>實線＝累積已實現；點線＋空心圈＝最新一期含未實現。點一下線上的點可看金額。"
-            "X 軸為各期間期末月份，2023/03～2023/12、2025/01～03 無資料。</div>", unsafe_allow_html=True)
+            f"X 軸為各期間期末月份。資料來源：{SOURCE}。</div>", unsafe_allow_html=True)
 
 st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
