@@ -155,6 +155,27 @@ with col_r:
 st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
 # ==========================================
+# UI 區塊 2b: 總部位較前次更新(2026-11-03 Allen：「新增一個欄位，對比前一次更新的資料，總部位損益是增減了多少」)
+# 前次＝上一筆有資料的月份，用同一公式(本金＋線上已實現＋線上未實現)計算
+# ==========================================
+if len(df) >= 2:
+    def _eq(r):
+        return TOTAL_PRINCIPAL + r['LS_Realized_Cum'] + r['Future_Realized_Cum'] + r['LS_Unrealized'] + r['Future_Unrealized']
+    prev_eq = _eq(df.iloc[-2])
+    diff = total_asset - prev_eq
+    d_color = "#e53e3e" if diff < 0 else ("#38a169" if diff > 0 else "#2d3748")
+    prev_month = df['Date'].iloc[-2].replace('-', '/')
+    st.markdown(f"""
+    <div style="background-color: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px 25px; display: flex; flex-wrap: wrap; gap: 6px 20px; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); margin-bottom: 20px;">
+        <div>
+            <div style="font-size: 14px; font-weight: bold; color: #718096;"><i class="fas fa-arrow-right-arrow-left"></i> 總部位較前次更新</div>
+            <div style="font-size: 12px; color: #a0aec0;">前次 {prev_month}：{prev_eq:,.0f} → 本次 {AS_OF}：{total_asset:,.0f}</div>
+        </div>
+        <div style="font-size: 24px; font-weight: bold; color: {d_color};">{diff:+,.0f}<span style="font-size: 14px; margin-left: 6px;">（{diff / prev_eq:+.2%}）</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ==========================================
 # UI 區塊 3: 部位分配 Bar
 # ==========================================
 st.markdown(f"""

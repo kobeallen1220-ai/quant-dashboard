@@ -1,8 +1,8 @@
 {
  "說明": "資金網站唯一資料來源。金額新臺幣、不加千分位；null＝未填、0＝確認為零。monthly 只列有資料的月份，realized＝累積已實現、unrealized＝當月底未實現。",
- "asOf": "2026-09-30",
+ "asOf": "2026-11-03",
  "capital": {
-  "positionEquity": 9574470,
+  "positionEquity": 9603736,
   "reserve": 1600000,
   "investedPrincipal": 8000000,
   "sungShu": 4000000,
@@ -113,6 +113,25 @@
    "futuresHedge": {
     "realized": 1414718,
     "unrealized": -564853
+   },
+   "aiAutoTrade": {
+    "realized": -1378017,
+    "unrealized": 0
+   },
+   "bonds": {
+    "realized": -312672,
+    "unrealized": 0
+   }
+  },
+  {
+   "month": "2026-10",
+   "longShort": {
+    "realized": 1241739,
+    "unrealized": -485113
+   },
+   "futuresHedge": {
+    "realized": 1482269,
+    "unrealized": -635159
    },
    "aiAutoTrade": {
     "realized": -1378017,
