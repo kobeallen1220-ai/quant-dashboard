@@ -9,6 +9,7 @@ SUNGSHU_CAPITAL = 4000000
 ALLEN_CAPITAL = 4000000
 TOTAL_PRINCIPAL = 8000000
 RESERVE_CAPITAL = 1600000
+AS_OF = "2026/09/30"
 # ==========================================
 
 st.set_page_config(page_title="量化交易總覽", layout="wide", initial_sidebar_state="collapsed")
@@ -88,9 +89,9 @@ st.markdown("""
         <div style="font-size: 12px; font-weight: bold; color: #a0aec0; letter-spacing: 1px;">PORTFOLIO OVERVIEW</div>
         <div style="font-size: 24px; font-weight: bold; color: #2d3748; margin-top: 5px;"></div>
     </div>
-    <div style="text-align: right; color: #718096; font-size: 14px;">資料截至<br><span style="color: #2d3748; font-weight: bold;">最新日期</span></div>
+    <div style="text-align: right; color: #718096; font-size: 14px;">資料截至<br><span style="color: #2d3748; font-weight: bold;">{AS_OF}</span></div>
 </div>
-""", unsafe_allow_html=True)
+""".replace("{AS_OF}", AS_OF), unsafe_allow_html=True)
 
 # ==========================================
 # UI 區塊 2: 核心數據卡片 (4:6 比例)
@@ -110,7 +111,7 @@ with col_l:
             <div style="font-size: 42px; font-weight: bold;">{total_asset:,.0f}</div>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 13px; color: #a0aec0; border-top: 1px solid #2d3748; padding-top: 15px;">
-            <span>包含備用資金</span>
+            <span>不含備用資金</span>
             <span>目前部位價值</span>
         </div>
     </div>
@@ -129,7 +130,7 @@ with col_r:
     
     r_col1, r_col2 = st.columns(2)
     with r_col1:
-        st.markdown(white_card("累積已實現損益", f"${total_realized:,.0f}", "本期2026/02至今累積合計"), unsafe_allow_html=True)
+        st.markdown(white_card("累積已實現損益", f"${total_realized:,.0f}", "線上策略累積合計（不含已下線策略）"), unsafe_allow_html=True)
         st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
         st.markdown(white_card("備用資金", f"${RESERVE_CAPITAL:,.0f}", "預留期貨保證金部位，防止國際黑天鵝事件"), unsafe_allow_html=True)
     with r_col2:
@@ -145,9 +146,9 @@ st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 # UI 區塊 3: 部位分配 Bar
 # ==========================================
 st.markdown(f"""
-<div style="background-color: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px 25px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);">
+<div style="background-color: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px 25px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);">
     <div style="font-weight: bold; color: #718096; font-size: 15px;"><i class="fas fa-layer-group"></i> 部位分配</div>
-    <div style="display: flex; gap: 60px;">
+    <div style="display: flex; flex-wrap: wrap; gap: 8px 40px;">
         <div style="display: flex; align-items: center;"><span style="background: #e6f2ff; color: #3182ce; width: 24px; height: 24px; display: inline-flex; justify-content: center; align-items: center; border-radius: 50%; font-size: 12px; margin-right: 10px; font-weight: bold;">S</span> <span style="color:#4a5568; margin-right: 15px;">SungShu</span> <span style="font-weight: bold; font-size: 20px; color: #1a202c;">NT$ {SUNGSHU_CAPITAL:,.0f}</span></div>
         <div style="display: flex; align-items: center;"><span style="background: #e6ffed; color: #38a169; width: 24px; height: 24px; display: inline-flex; justify-content: center; align-items: center; border-radius: 50%; font-size: 12px; margin-right: 10px; font-weight: bold;">A</span> <span style="color:#4a5568; margin-right: 15px;">Allen</span> <span style="font-weight: bold; font-size: 20px; color: #1a202c;">NT$ {ALLEN_CAPITAL:,.0f}</span></div>
     </div>
@@ -165,31 +166,45 @@ st.markdown("""
 <div style="font-size: 13px; color: #718096; margin-bottom: 15px;">2021年起 • 每月紀錄 • 單位：新臺幣</div>
 """, unsafe_allow_html=True)
 
+# 2026-11-03 手機版修正：原本圖例擠在圖上方、8 條線(含整條與實線重疊的虛線)＋「x unified」提示框會蓋滿手機畫面。
+# 改為：X 軸用期末月份(兩行「2021／10月」)，提示顯示完整期間；Y 軸以「萬元」顯示；圖例移到圖下方；
+# 未實現只畫「最後一段」虛線(前一期→本期含未實現)，不再畫整條重疊虛線；關閉縮放與工具列避免手機誤觸。
+x_label = [d.split('-')[1][:4] + '<br>' + d.split('-')[1][4:] + '月' for d in df['Date']]  # 兩行，手機上不重疊
 fig = go.Figure()
 
 for prefix, info in zip(['LS', 'Future', 'AI', 'Bond'], [strats['LS'], strats['Future'], strats['AI'], strats['Bond']]):
     name = info['name']
     color = info['color']
-    
-    # 實線
-    fig.add_trace(go.Scatter(x=df['Date'], y=df[f'{prefix}_Realized_Cum'], mode='lines+markers', name=f'{name} (已實現)', line=dict(color=color, width=2, dash='solid')))
-    
-    # 虛線
-    if df[f'{prefix}_Unrealized'].sum() != 0:
-        total_pnl = df[f'{prefix}_Realized_Cum'] + df[f'{prefix}_Unrealized']
-        fig.add_trace(go.Scatter(x=df['Date'], y=total_pnl, mode='lines+markers', name=f'{name} (含未實現)', line=dict(color=color, width=2, dash='dash')))
+    real = df[f'{prefix}_Realized_Cum']
+    fig.add_trace(go.Scatter(
+        x=x_label, y=real / 10000, mode='lines+markers', name=name, legendgroup=prefix,
+        line=dict(color=color, width=2.5), marker=dict(size=6), customdata=list(zip(df['Date'], real)),
+        hovertemplate=f'{name}｜%{{customdata[0]}}<br>累積已實現 %{{customdata[1]:,.0f}}<extra></extra>'))
+    unreal = df[f'{prefix}_Unrealized'].iloc[-1]
+    if unreal != 0:
+        total = real.iloc[-1] + unreal
+        fig.add_trace(go.Scatter(
+            x=x_label[-2:], y=[real.iloc[-2] / 10000, total / 10000], mode='lines+markers', name=f'{name}（含未實現）',
+            legendgroup=prefix, showlegend=False, line=dict(color=color, width=2, dash='dot'),
+            marker=dict(size=[0, 8], symbol='circle-open'),
+            hovertemplate=f'{name}｜含未實現 {total:,.0f}<br>（未實現 {unreal:,.0f}）<extra></extra>'))
 
 fig.update_layout(
-    height=450,
+    height=380,
     plot_bgcolor='white',
     paper_bgcolor='rgba(0,0,0,0)',
-    hovermode="x unified",
-    legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="right", x=1),
-    xaxis=dict(showgrid=True, gridcolor='#edf2f7', linecolor='#e2e8f0'),
-    yaxis=dict(showgrid=True, gridcolor='#edf2f7', linecolor='#e2e8f0', zeroline=True, zerolinecolor='#cbd5e0'),
-    margin=dict(l=0, r=0, t=20, b=0)
+    hovermode="closest",
+    dragmode=False,
+    font=dict(size=12),
+    legend=dict(orientation="h", yanchor="top", y=-0.12, xanchor="center", x=0.5, font=dict(size=12)),
+    xaxis=dict(showgrid=False, linecolor='#e2e8f0', fixedrange=True, tickangle=0),
+    yaxis=dict(title=dict(text='萬元', font=dict(size=11)), showgrid=True, gridcolor='#edf2f7', zeroline=True,
+               zerolinecolor='#94a3b8', fixedrange=True, tickformat=',.0f'),
+    margin=dict(l=10, r=10, t=10, b=10)
 )
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width='stretch', config={'displayModeBar': False, 'scrollZoom': False})
+st.markdown("<div style='font-size: 12px; color: #a0aec0;'>實線＝累積已實現；點線＋空心圈＝最新一期含未實現。點一下線上的點可看金額。"
+            "X 軸為各期間期末月份，2023/03～2023/12、2025/01～03 無資料。</div>", unsafe_allow_html=True)
 
 st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
